@@ -192,6 +192,27 @@ void processCommand(const String &command)
   }
 }
 
+// During the service tick between steps, shared outputs stay energized.
+// The fast and slow slots may also be active together on the same PCM.
+static uint32_t heldPatternChannels()
+{
+  uint32_t held = 0;
+  for (const auto &pattern : flashingPatterns)
+  {
+    if (!pattern.active || pattern.stepCount == 0)
+      continue;
+
+    uint32_t mask = pattern.steps[pattern.currentStep].channelMask;
+    if (!pattern.stepOn)
+    {
+      const uint8_t previous = pattern.currentStep == 0 ? pattern.stepCount - 1 : pattern.currentStep - 1;
+      mask &= pattern.steps[previous].channelMask;
+    }
+    held |= mask;
+  }
+  return held;
+}
+
 void updateSwitch(uint8_t switchId, bool state)
 {
   Serial.print("Updating switch ");
@@ -204,10 +225,11 @@ void updateSwitch(uint8_t switchId, bool state)
       if (mapping.isPattern)
       {
         FlashingPattern &pattern = flashingPatterns[switchId];
+        pattern.active = state;
 
         if (!state)
         {
-          // turning pattern OFF – make sure all its channels are OFF
+          // Release this slot's outputs except those still held by another slot.
           uint32_t offMask = 0;
           for (uint8_t i = 0; i < pattern.stepCount; i++)
           {
@@ -215,11 +237,10 @@ void updateSwitch(uint8_t switchId, bool state)
           }
           if (offMask)
           {
-            updateChannels(offMask, false);
+            updateChannels(offMask & ~heldPatternChannels(), false);
           }
         }
 
-        pattern.active = state;
         pattern.currentStep = 0;
         pattern.stepOn = false;
         pattern.stepStart = millis();
@@ -474,9 +495,10 @@ void runFlashingPatterns()
     return;
   lastFlashingTickMs = now;
 
-  for (int i = 0; i < 50; i++)
+  uint32_t starting = 0;
+  uint32_t ending = 0;
+  for (auto &pattern : flashingPatterns)
   {
-    FlashingPattern &pattern = flashingPatterns[i];
     if (!pattern.active || pattern.stepCount == 0)
       continue;
 
@@ -484,7 +506,7 @@ void runFlashingPatterns()
 
     if (!pattern.stepOn)
     {
-      updateChannels(step.channelMask, true);
+      starting |= step.channelMask;
       pattern.stepOn = true;
       pattern.stepStart = now;
     }
@@ -492,13 +514,18 @@ void runFlashingPatterns()
     {
       if (now - pattern.stepStart >= step.duration)
       {
-        updateChannels(step.channelMask, false);
+        ending |= step.channelMask;
         pattern.currentStep = (pattern.currentStep + 1) % pattern.stepCount;
         pattern.stepOn = false;
         pattern.stepStart = now;
       }
     }
   }
+  // Resolve both slots first so a shared output never pulses low between writes.
+  if (ending)
+    updateChannels(ending & ~heldPatternChannels(), false);
+  if (starting)
+    updateChannels(starting, true);
 }
 
 // ======================= CAN Helpers & Decoder =======================

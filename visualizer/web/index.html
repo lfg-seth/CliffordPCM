@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#161817">
+  <title>Pattern Studio · Clifford PCM</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/editor.css">
+</head>
+<body>
+  <a class="skip" href="#workspace">Skip to workspace</a>
+  <header class="app-header">
+    <a class="wordmark" href="#studio" aria-label="Clifford PCM studio"><span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span>Clifford<span class="pcm">PCM</span></a>
+    <nav aria-label="Workspace">
+      <button data-page="studio" class="nav-item current"><i data-icon="studio"></i>Studio</button>
+      <button data-page="wiring" class="nav-item"><i data-icon="wiring"></i>Wiring</button>
+      <button data-page="library" class="nav-item"><i data-icon="library"></i>Library</button>
+    </nav>
+    <button class="export-action" data-page="export"><i data-icon="export"></i>Firmware export</button>
+  </header>
+  <main id="workspace">
+    <div class="page-head">
+      <div><div class="project-name"><span class="project-line"></span>4RUNNER LIGHTING</div><h1 id="page-title">Pattern studio</h1></div>
+      <label class="layout-field"><span>Wiring layout</span><select id="layout-select" aria-label="Wiring layout"></select></label>
+    </div>
+    <div id="load-state" role="status">Loading workspace…</div>
+    <section id="studio-page" class="workspace-page" aria-label="Studio" hidden>
+      <div class="studio-top">
+        <section class="panel preview-panel">
+          <div class="panel-head"><h2><i data-icon="orbit"></i>Vehicle preview</h2><div class="view-counter" id="view-counter"></div></div>
+          <div class="viewport">
+            <canvas id="vehicle" tabindex="0" aria-label="4Runner orbit view. Drag to rotate or use the previous and next angle buttons."></canvas>
+            <span class="angle-label" id="angle-label">Front quarter</span>
+          </div>
+          <div class="camera-bar">
+            <div class="control-group">
+              <button class="icon-btn" id="angle-prev" title="Previous angle" aria-label="Previous angle"><i data-icon="left"></i></button>
+              <span class="angle-value" id="angle-value"></span>
+              <button class="icon-btn" id="angle-next" title="Next angle" aria-label="Next angle"><i data-icon="right"></i></button>
+            </div>
+            <label class="camera-height"><i data-icon="layers"></i><select id="elevation" aria-label="Camera elevation"><option value="0">Lower orbit</option><option value="1">Upper orbit</option></select></label>
+            <div class="zoom-set"><button id="zoom-out" class="icon-btn" aria-label="Zoom out" title="Zoom out">−</button><button id="zoom-reset" title="Reset zoom">Reset</button><button id="zoom-in" class="icon-btn" aria-label="Zoom in" title="Zoom in">+</button></div>
+          </div>
+          <div class="light-controls" role="group" aria-label="Preview lighting">
+            <div class="light-control">
+              <label for="beam-fade-on">High-beam fade on</label><span id="fade-on-value" aria-hidden="true">54 ms</span>
+              <input id="beam-fade-on" type="range" min="0" max="600" value="54" title="Time to reach about 95% brightness">
+            </div>
+            <div class="light-control">
+              <label for="beam-fade-off">High-beam fade off</label><span id="fade-off-value" aria-hidden="true">72 ms</span>
+              <input id="beam-fade-off" type="range" min="0" max="600" value="72" title="Time to lose about 95% of the light">
+            </div>
+            <div class="light-control">
+              <label for="haze-reach">Haze reach</label><span id="haze-value" aria-hidden="true">100%</span>
+              <input id="haze-reach" type="range" min="0" max="300" step="5" value="100">
+            </div>
+            <div class="light-control">
+              <label for="haze-intensity">Haze intensity</label><span id="intensity-value" aria-hidden="true">100%</span>
+              <input id="haze-intensity" type="range" min="0" max="200" step="5" value="100">
+            </div>
+          </div>
+        </section>
+        <aside class="panel inspector">
+          <div class="panel-head"><h2><i data-icon="adjust"></i>Inspector</h2></div>
+          <div class="inspect-body">
+            <label class="field">PCM board<select id="role"><option value="engine">Engine bay</option><option value="cargo">Cargo bay</option></select></label>
+            <label class="field">Pattern<select id="pattern-select"></select></label>
+            <label class="companion"><input type="checkbox" id="companion"><span id="companion-label">Play cargo pattern</span></label>
+            <div class="metrics"><span><b id="step-count">–</b>Steps</span><span><b id="loop-length">–</b>Loop duration</span></div>
+            <div class="selection-head"><h3>Selected light</h3><button id="placement" class="text-button" aria-pressed="false"><i data-icon="move"></i>Adjust</button></div>
+            <div id="selection-detail" class="selection-detail">Select a light on the vehicle or a circuit in the grid.</div>
+            <p id="placement-tip" hidden>Drag a light to position it in this photo. Select a lens and drag a corner to resize it here.</p>
+          </div>
+        </aside>
+      </div>
+      <section class="panel sequence-panel">
+        <div class="sequence-head">
+          <h2><i data-icon="steps"></i>Step sequencer</h2>
+          <div class="transport">
+            <button class="icon-btn" id="step-prev" title="Previous step" aria-label="Previous step"><i data-icon="previous"></i></button>
+            <button id="play" class="primary" title="Play or pause (Space)"><i data-icon="play"></i><span>Play</span></button>
+            <button class="icon-btn" id="step-next" title="Next step" aria-label="Next step"><i data-icon="next"></i></button>
+            <select id="speed" title="Playback speed" aria-label="Playback speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select>
+          </div>
+        </div>
+        <div id="step-grid"></div>
+        <div class="sequence-foot"><output id="step-position"></output><div><button id="add-step">+ Step</button><button id="delete-step">Remove step</button><button id="save-as"><i data-icon="copy"></i>Save as candidate</button></div></div>
+      </section>
+    </section>
+    <section id="wiring-page" class="workspace-page" aria-label="Wiring" hidden><div id="wiring-editor"></div></section>
+    <section id="library-page" class="workspace-page" aria-label="Pattern library" hidden><div id="library-editor"></div></section>
+    <section id="export-page" class="workspace-page" aria-label="Firmware export" hidden><div id="export-editor"></div></section>
+    <footer><span>CLIFFORD PCM</span><span>4xPi PCM Rev 6.1</span></footer>
+  </main>
+  <div id="toast" role="status" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
